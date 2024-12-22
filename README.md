@@ -1,5 +1,3 @@
-Here’s a detailed and interesting README.md template for your GitHub project:
-
 Student Attendance Tracker and Time Manager
 
 A powerful and user-friendly application designed to help students stay on top of their attendance, optimize their time, and make it to college on time. Say goodbye to attendance worries and unplanned mornings! 🚀
