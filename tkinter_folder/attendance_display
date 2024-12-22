@@ -55,6 +55,19 @@ TIMETABLE = {
 TRAVEL_TIME = timedelta(minutes=40)  # 40 minutes travel time
 
 # Timetable and attendance scraping function using Selenium
+# Updating the `run_attendance_check` method to check and update attendance instantly
+def run_attendance_check(self):
+    """Runs attendance check immediately and updates the UI."""
+    # Check attendance instantly
+    check_attendance()
+
+    # Optionally, you can have a periodic check after a certain time
+    while self.running:
+        # Check attendance every 24 hours or as per your requirement
+        time.sleep(86400)  # Sleep for a day (24 hours) before checking again
+        check_attendance()
+
+# Updating the `check_attendance` function to update the GUI with the fetched attendance
 def check_attendance():
     today = datetime.now()
     day_name = today.strftime("%A")
@@ -92,7 +105,6 @@ def check_attendance():
             "Natural Language Processing Laboratory"
         ],
         "Saturday": [
-            "Operating Systems",
             "Natural Language Processing",
             "Data Visualization using Power BI"
         ],
@@ -101,12 +113,11 @@ def check_attendance():
 
     # Set up selenium options and driver
     options = webdriver.ChromeOptions()
-    # options.add_argument("--headless")
-    # options.add_argument("--disable-gpu")
-    # options.add_argument("--disable-extensions")
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-extensions")
     options.add_experimental_option("detach", True)
 
-    # service = Service('/usr/n=bin/chromedriver')
     driver = webdriver.Chrome(options=options)
     driver.get(url="https://parents.msrit.edu/newparents/")
 
@@ -150,7 +161,16 @@ def check_attendance():
         if subjects[i] in timetable[day_name]:
             body += subjects[i] + ": " + attendance[i] + "\n"
 
+    # Update the attendance display in the UI immediately
+    attendance_details = ""
+    for i in range(10):
+        if subjects[i] in timetable[day_name]:
+            attendance_details += f"{subjects[i]}: {attendance[i]}\n"
+
+    app.update_attendance_display(attendance_details)  # Update the attendance display
+
     send_email(body)
+
 
 # Send email function
 def send_email(body):
@@ -183,18 +203,65 @@ class CollegeTimerApp:
         self.root = root
         self.root.title("College Timer")
 
-        # Add GUI components
-        self.label = tk.Label(root, text="Calculating...", font=("Helvetica", 18))
-        self.label.pack(pady=20)
+        # Create frames for organization
+        self.timetable_frame = tk.Frame(root)
+        self.timetable_frame.pack(fill=tk.BOTH, pady=10)
 
-        # Start the background thread to update the timer
+        self.attendance_frame = tk.Frame(root)
+        self.attendance_frame.pack(fill=tk.BOTH, pady=10)
+
+        self.timer_frame = tk.Frame(root)
+        self.timer_frame.pack(fill=tk.BOTH, pady=10)
+
+        # Timetable display
+        self.timetable_label = tk.Label(self.timetable_frame, text="Today's Timetable", font=("Helvetica", 14, "bold"))
+        self.timetable_label.pack()
+        self.timetable_text = tk.Text(self.timetable_frame, height=10, wrap=tk.WORD, state=tk.DISABLED)
+        self.timetable_text.pack(fill=tk.BOTH, padx=20)
+
+        # Attendance display
+        self.attendance_label = tk.Label(self.attendance_frame, text="Attendance", font=("Helvetica", 14, "bold"))
+        self.attendance_label.pack()
+        self.attendance_text = tk.Text(self.attendance_frame, height=10, wrap=tk.WORD, state=tk.DISABLED)
+        self.attendance_text.pack(fill=tk.BOTH, padx=20)
+
+        # Timer display
+        self.timer_label = tk.Label(self.timer_frame, text="Calculating...", font=("Helvetica", 18))
+        self.timer_label.pack(pady=20)
+
+        # Load timetable for today
+        self.display_timetable()
+
+        # Start background threads
         self.running = True
         self.update_thread = Thread(target=self.update_timer)
         self.update_thread.start()
 
-        # Run the attendance check periodically (every hour)
         self.attendance_thread = Thread(target=self.run_attendance_check)
         self.attendance_thread.start()
+
+    def display_timetable(self):
+        """Display today's timetable."""
+        today = datetime.now()
+        day_name = today.strftime("%A")
+        timetable = TIMETABLE.get(day_name, [])
+
+        text_content = f"{day_name}'s Timetable:\n"
+        for hour, minute, class_name in timetable:
+            text_content += f"{hour:02}:{minute:02} - {class_name}\n"
+
+        # Update the timetable display
+        self.timetable_text.config(state=tk.NORMAL)
+        self.timetable_text.delete(1.0, tk.END)
+        self.timetable_text.insert(tk.END, text_content)
+        self.timetable_text.config(state=tk.DISABLED)
+
+    def update_attendance_display(self, attendance_details):
+        """Update the attendance details display."""
+        self.attendance_text.config(state=tk.NORMAL)
+        self.attendance_text.delete(1.0, tk.END)
+        self.attendance_text.insert(tk.END, attendance_details)
+        self.attendance_text.config(state=tk.DISABLED)
 
     def get_class_status(self):
         """Get all previous classes and the next class with adjusted travel time."""
@@ -249,42 +316,27 @@ class CollegeTimerApp:
                 display_text += "\nNo more classes today!"
 
             # Update the GUI label
-            self.label.config(text=display_text)
+            self.timer_label.config(text=display_text)
             time.sleep(1)
-
-
 
     def stop(self):
         self.running = False
 
     def run_attendance_check(self):
+        """Runs attendance check immediately and updates the UI."""
+        # Check attendance instantly
+        check_attendance()
+
+        # Optionally, you can have a periodic check after a certain time
         while self.running:
-            # Get current time and calculate the time difference to 6 AM
-            now = datetime.now()
-            target_time = now.replace(hour=6, minute=0, second=0, microsecond=0)
-            print(now)
-
-            # If the current time is already past 6 AM, schedule the next check for 6 AM the next day
-            if now > target_time:
-                target_time += timedelta(days=1)
-
-            # Calculate the sleep duration until 6 AM
-            sleep_duration = (target_time - now).total_seconds()
-            print(sleep_duration)
+            # Check attendance every 24 hours or as per your requirement
+            time.sleep(86400)  # Sleep for a day (24 hours) before checking again
             check_attendance()
-            # Sleep until 6 AM
-            time.sleep(sleep_duration)
-
-
-            # Check attendance at 6 AM
-            check_attendance()
-
 
 # Create the main application window
 root = tk.Tk()
 app = CollegeTimerApp(root)
 
-# Handle closing the application
 def on_closing():
     app.stop()
     root.destroy()
