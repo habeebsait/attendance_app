@@ -19,7 +19,7 @@ class _LocationTimeScreenState extends State<LocationTimeScreen> {
     });
 
     try {
-      final apiKey = "AIzaSyBz1dJG9aIwD7NKHcFSFrhhS8ewZkW1EzQ";
+      final apiKey = "";
       final destination = "Ramaiah Institute of Technology, Bangalore, India";
       final url =
           "https://maps.googleapis.com/maps/api/directions/json?origin=${Uri.encodeFull(origin)}&destination=${Uri.encodeFull(destination)}&key=$apiKey";
